@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Feb 22 22:16:40 2018
+
+@author: hamzatazi
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+#IMPORT DATASET
+dataset=pd.read_csv('Data.csv')
+#Matrix of features: independent variables
+#Dependent variable vector: the variable we want to explain with the independants
+X=dataset.iloc[:,:-1].values #all lines, all columns except the last one
+Y=dataset.iloc[:,3].values
+
+#TAKE CARE OF MISSING DATA
+from sklearn.preprocessing import Imputer
+imputer=Imputer(missing_values="NaN",strategy="mean",axis=0)
+imputer=imputer.fit(X[:,1:])
+X[:,1:]=imputer.transform(X[:,1:])
+#Tout ça pour amputer les données qui manquent et en fait les remplacer par la moyenne des valeurs dans leur colonne
+
+#Categorical variables :variables where there are different categories of answer (Yes/No, countries...)
+#Encode the variables in numerical variables
+
+###########################
+# ENCODING CATEGORICAL DATA
+from sklearn.preprocessing import LabelEncoder #this is a class
+labelencoder_X=LabelEncoder() #this is an object of the class
+X[:,0]=labelencoder_X.fit_transform(X[:,0]) #On met la colonne à laquelle on veut l'appliquer dans le fit_transform
+                                            #Et on fait en sorte que la colonne qu'on veut prenne cette valeur
+#Problem: Encoding like this might let the machine think that one country is greater than the other
+#Solution: instead of encoding everything in one column, we separate the column in 3 other
+#DummyVariables
+
+from sklearn.preprocessing import OneHotEncoder
+onehotencoder=OneHotEncoder(categorical_features=[0]) #On spécifie la colonne qu'on veut catégoriser
+X=onehotencoder.fit_transform(X).toarray() #No need to specify the column because already done before
+
+labelencoder_Y=LabelEncoder() #C'est un vecteur avec des Yes/No, rien a catégoriser car binaire
+Y=labelencoder_Y.fit_transform(Y)
+
+################################################
+#SPLITTING DATASET INTRO TRAINING AND TEST SETS:
+from sklearn.cross_validation import train_test_split
+X_train,X_test,Y_train,Y_test = train_test_split(X,Y,test_size=0.2,random_state=0)
+
+#################
+#FEATURE SCALING:
+#Age and Salary don't have the same scale, the ML algorithms are base on the euclidian distance,
+#So might make the results false because Salary will dominate over Age (larger scale)
+from sklearn.preprocessing import StandardScaler
+sc_X=StandardScaler()
+X_train=sc_X.fit_transform(X_train)
+X_test=sc_X.transform(X_test)
+
+#DATA PREPROCESSING TEMPLATE
+
