@@ -1,0 +1,109 @@
+#DM TAZI BOUARDI Hamza & GUENAIS Theo
+graphics.off();rm(list=objects())
+##QUESTION 1 : READ & SCATTER PLOT
+df=read.table("/Users/hamzatazi/Downloads/pine.sup1.data",sep=" ",skip=25,header=TRUE)
+res=paste("nb observations =",dim(df)[1],"et nb de variables=",dim(df)[2])
+print(res)
+plot(df)
+
+library(corrplot)
+corrplot(cor(df),title='Correlation entre les différentes variables',tl.cex=0.8,mar=c(0,0,3,0))
+#Il semble que x3/x6, x3/x9, x6/x9, x8/x9, x10/x9, x10/x8, x11/x5, et x11/x9 soient corrélées
+
+##QUESTION 2: REGRESSION LINEAIRE AVEC TOUTES LES VARIABLES
+modelcomplet=lm(x11~.,data=df) #Avec toutes les variables
+summary(modelcomplet)
+modelcomplet$coefficients #On interprète avec les coeff ou avec les p-value?
+
+##QUESTION 3:
+library(MASS)
+resf=stepAIC(modelcomplet)
+class(resf)==class(modelcomplet)
+resf$coef
+#(Intercept)          x2          x5          x6          x9 
+#2.91039360 -0.05125950  0.08748996  1.79868608 -2.45381529 
+
+resf$anova
+#Final Model:
+#x11 ~ x2 + x5 + x6 + x9
+#Step Df   Deviance Resid. Df Resid. Dev       AIC
+#1                            14   19.92132 16.322864
+#2 - x10  1 0.01416431        15   19.93548 14.340633
+#3  - x3  1 0.03534687        16   19.97083 12.384921
+#4  - x7  1 0.81506275        17   20.78589 11.384966
+#5  - x8  1 0.45258449        18   21.23848  9.923465
+#6  - x1  1 0.59205209        19   21.83053  8.610838
+#7  - x4  1 1.11262480        20   22.94315  7.853593
+
+summary(resf)
+#Residuals:
+#  Min      1Q  Median      3Q     Max 
+#-1.5029 -0.7147 -0.2223  0.4933  2.7684 
+
+#Coefficients:
+#  Estimate Std. Error t value Pr(>|t|)   
+#(Intercept)  2.91039    1.10975   2.623  0.01631 * 
+#  x2          -0.05126    0.02788  -1.838  0.08090 . 
+#  x5           0.08749    0.03114   2.809  0.01083 * 
+#  x6           1.79869    0.58389   3.081  0.00590 **
+#  x9          -2.45382    0.67443  -3.638  0.00164 **
+#Residual standard error: 1.071 on 20 degrees of freedom
+#Multiple R-squared:  0.5079,	Adjusted R-squared:  0.4095 
+#F-statistic: 5.161 on 4 and 20 DF,  p-value: 0.005061
+
+anova(resf,modelcomplet)
+#  Res.Df    RSS Df Sum of Sq      F Pr(>F)
+#1     20 22.943                           
+#2     14 19.921  6    3.0218 0.3539 0.8959
+
+#LE MODELE RETENU EST DONC x2+x5+x6+x9
+
+##############################################################################################
+##QUESTION 4: CRITERE BIC
+n=dim(df)[1]
+modbic=stepAIC(modelcomplet,k=log(n))
+#Step:  AIC=13.95
+#x11 ~ x2 + x5 + x6 + x9
+#Df Sum of Sq    RSS    AIC
+#<none>              22.943 13.948
+#- x2    1    3.8773 26.820 14.633
+#- x5    1    9.0530 31.996 19.044
+#- x6    1   10.8861 33.829 20.437
+#- x9    1   15.1857 38.129 23.428
+
+##QUESTION 5: STEPWISE
+model36=lm(x11~x3+x6,data=df)
+modstep=stepAIC(model36,scope=list(lower=~1,upper=~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10),direction="both")
+#En fait pour le upper on peut faire paste("~",paste("x",1:10,sep="",collapse="+"))
+modstep$anova
+#Final Model:
+#  x11 ~ x6 + x9 + x5 + x2
+#Step Df   Deviance Resid. Df Resid. Dev       AIC
+#1                           22   44.59756 20.470081
+#2 + x9  1 10.0483664        21   34.54919 16.087706
+#3 + x5  1  7.8471289        20   26.70206 11.646623
+#4 - x3  1  0.1183457        21   26.82041  9.757180
+#5 + x2  1  3.8772531        20   22.94315  7.853593
+
+##############################################################################################
+##QUESTION 6: RECHERCHE EXHAUSTIVE
+library(leaps)
+par(mfrow=c(2,2))
+recherche=regsubsets(x11~.,int=TRUE,nbest=1,nvmax=10,method="exhaustive",data=df)
+plot(recherche,scale="bic")
+plot(summary(recherche)$bic)
+
+par(mfrow=c(2,2))
+plot(recherche,scale="bic",main="Critère BIC")
+plot(recherche,scale="Cp",main="Critère de Mallows Cp")
+plot(recherche,scale="adjr2",main="Critère Adjusted r2")
+plot(recherche,scale="r2",main="Critère r2")
+title(main="Differents tests selon les différentes méthodes",col.main="red",outer=TRUE,line=-1,col="red")
+#Si c'est noir, variable inclue, si c'est blanc rejetée.
+
+##############################################################################################
+##QUESTION 7: PREDICTION
+library(forecast)
+CV(modelcomplet)
+CV(resf)
+CV(model36)
