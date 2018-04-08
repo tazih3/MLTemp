@@ -28,8 +28,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, rando
 
 # Fitting XGBoost to the Training set
 from xgboost import XGBClassifier
-classifier = XGBClassifier()
-classifier.fit(X_train, y_train)
+classifier = XGBClassifier() #can add n_estimators=1000 for the number of trees (make a compromise for the error)
+                             #and learning_rate=.05 (.1 default)
+classifier.fit(X_train, y_train) #add early_stopping_rounds=5 Early stopping causes the model to stop iterating when 
+#the validation score stops improving, even if we aren't at the hard stop for n_estimators
+#eval_set=[(test_X, test_y)], verbose=False (to avoid printing the validation score at each iteration)
 
 # Predicting the Test set results
 y_pred = classifier.predict(X_test)
